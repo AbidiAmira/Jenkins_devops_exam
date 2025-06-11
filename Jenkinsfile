@@ -61,17 +61,6 @@ pipeline {
         }
         
         stage('Deploy to Kubernetes') {
-            when {
-                anyOf {
-                    branch 'dev'
-                    branch 'qa'
-                    branch 'staging'
-                    allOf {
-                        branch 'main'
-                        // Manual approval pour prod
-                    }
-                }
-            }
             steps {
                 script {
                     // Déterminer le namespace basé sur la branche
