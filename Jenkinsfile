@@ -35,5 +35,29 @@ pipeline {
                 }
             }
         }
+        
+        stage('Push to DockerHub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", 
+                                                    usernameVariable: 'DOCKER_USERNAME', 
+                                                    passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                            echo "Logging into DockerHub..."
+                            echo \${DOCKER_PASSWORD} | docker login -u \${DOCKER_USERNAME} --password-stdin
+                            
+                            echo "Pushing Movie Service image: ${MOVIE_IMAGE}"
+                            docker push ${MOVIE_IMAGE}
+                            
+                            echo "Pushing Cast Service image: ${CAST_IMAGE}"
+                            docker push ${CAST_IMAGE}
+                            
+                            echo "Both images pushed successfully to DockerHub!"
+                            docker logout
+                        """
+                    }
+                }
+            }
+        }
     }
 }
