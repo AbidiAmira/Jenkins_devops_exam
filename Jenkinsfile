@@ -97,6 +97,98 @@ pipeline {
                         # Create namespace if it doesn't exist
                         kubectl create namespace ${namespace} --dry-run=client -o yaml | kubectl apply -f -
                         
+                        # Deploy PostgreSQL for Movie Service
+                        cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: movie-db-${namespace}
+  namespace: ${namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: movie-db-${namespace}
+  template:
+    metadata:
+      labels:
+        app: movie-db-${namespace}
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13
+        env:
+        - name: POSTGRES_DB
+          value: "movie_db"
+        - name: POSTGRES_USER
+          value: "movie_user"
+        - name: POSTGRES_PASSWORD
+          value: "movie_password"
+        ports:
+        - containerPort: 5432
+EOF
+
+                        # Service for Movie DB
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: movie-db-${namespace}
+  namespace: ${namespace}
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: movie-db-${namespace}
+EOF
+
+                        # Deploy PostgreSQL for Cast Service
+                        cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cast-db-${namespace}
+  namespace: ${namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cast-db-${namespace}
+  template:
+    metadata:
+      labels:
+        app: cast-db-${namespace}
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13
+        env:
+        - name: POSTGRES_DB
+          value: "cast_db"
+        - name: POSTGRES_USER
+          value: "cast_user"
+        - name: POSTGRES_PASSWORD
+          value: "cast_password"
+        ports:
+        - containerPort: 5432
+EOF
+
+                        # Service for Cast DB
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: cast-db-${namespace}
+  namespace: ${namespace}
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: cast-db-${namespace}
+EOF
+
                         # Create Movie Service Deployment
                         cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
@@ -121,15 +213,17 @@ spec:
         - containerPort: 8000
         env:
         - name: DATABASE_URI
-          value: "sqlite:///./movies.db"
+          value: "postgresql://movie_user:movie_password@movie-db-${namespace}:5432/movie_db"
         - name: DATABASE_URL
-          value: "sqlite:///./movies.db"
+          value: "postgresql://movie_user:movie_password@movie-db-${namespace}:5432/movie_db"
         readinessProbe:
           httpGet:
             path: /api/v1/checkapi
             port: 8000
-          initialDelaySeconds: 15
+          initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
 EOF
 
                         # Create Movie Service Service
@@ -173,15 +267,17 @@ spec:
         - containerPort: 8000
         env:
         - name: DATABASE_URI
-          value: "sqlite:///./casts.db"
+          value: "postgresql://cast_user:cast_password@cast-db-${namespace}:5432/cast_db"
         - name: DATABASE_URL
-          value: "sqlite:///./casts.db"
+          value: "postgresql://cast_user:cast_password@cast-db-${namespace}:5432/cast_db"
         readinessProbe:
           httpGet:
             path: /api/v1/checkapi
             port: 8000
-          initialDelaySeconds: 15
+          initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
 EOF
 
                         # Create Cast Service Service
