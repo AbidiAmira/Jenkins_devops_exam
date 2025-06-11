@@ -59,5 +59,33 @@ pipeline {
                 }
             }
         }
+        
+        stage('Explore Helm Charts') {
+            steps {
+                script {
+                    sh """
+                        echo "=== HELM CHARTS EXPLORATION ==="
+                        echo "Charts directory structure:"
+                        find ./charts -type f
+                        echo ""
+                        echo "=== Chart.yaml content ==="
+                        if [ -f ./charts/Chart.yaml ]; then
+                            cat ./charts/Chart.yaml
+                        fi
+                        echo ""
+                        echo "=== Values.yaml content ==="
+                        if [ -f ./charts/values.yaml ]; then
+                            cat ./charts/values.yaml
+                        fi
+                        echo ""
+                        echo "=== Templates directory ==="
+                        ls -la ./charts/templates/
+                        echo ""
+                        echo "=== Deployment template example ==="
+                        find ./charts/templates -name "*deployment*" -type f | head -1 | xargs cat
+                    """
+                }
+            }
+        }
     }
 }
