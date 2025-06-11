@@ -94,28 +94,111 @@ pipeline {
                         echo "Movie Service NodePort: ${nodePortMovie}"
                         echo "Cast Service NodePort: ${nodePortCast}"
                         
-                        # Deploy Movie Service
-                        helm upgrade --install movie-service-${namespace} ./charts \\
-                            --namespace ${namespace} \\
-                            --create-namespace \\
-                            --set image.repository=amiraabidi/movie-service \\
-                            --set image.tag=${IMAGE_TAG} \\
-                            --set service.nodePort=${nodePortMovie} \\
-                            --set fullnameOverride=movie-service-${namespace}
+                        # Create namespace if it doesn't exist
+                        kubectl create namespace ${namespace} --dry-run=client -o yaml | kubectl apply -f -
                         
-                        # Deploy Cast Service  
-                        helm upgrade --install cast-service-${namespace} ./charts \\
-                            --namespace ${namespace} \\
-                            --create-namespace \\
-                            --set image.repository=amiraabidi/cast-service \\
-                            --set image.tag=${IMAGE_TAG} \\
-                            --set service.nodePort=${nodePortCast} \\
-                            --set fullnameOverride=cast-service-${namespace}
-                        
+                        # Create Movie Service Deployment
+                        cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: movie-service-${namespace}
+  namespace: ${namespace}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: movie-service-${namespace}
+  template:
+    metadata:
+      labels:
+        app: movie-service-${namespace}
+    spec:
+      containers:
+      - name: movie-service
+        image: ${MOVIE_IMAGE}
+        ports:
+        - containerPort: 8000
+        readinessProbe:
+          httpGet:
+            path: /api/v1/checkapi
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+EOF
+
+                        # Create Movie Service Service
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: movie-service-${namespace}
+  namespace: ${namespace}
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8000
+    nodePort: ${nodePortMovie}
+  selector:
+    app: movie-service-${namespace}
+EOF
+
+                        # Create Cast Service Deployment
+                        cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cast-service-${namespace}
+  namespace: ${namespace}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cast-service-${namespace}
+  template:
+    metadata:
+      labels:
+        app: cast-service-${namespace}
+    spec:
+      containers:
+      - name: cast-service
+        image: ${CAST_IMAGE}
+        ports:
+        - containerPort: 8000
+        readinessProbe:
+          httpGet:
+            path: /api/v1/checkapi
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+EOF
+
+                        # Create Cast Service Service
+                        cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: cast-service-${namespace}
+  namespace: ${namespace}
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8000
+    nodePort: ${nodePortCast}
+  selector:
+    app: cast-service-${namespace}
+EOF
+
                         echo "Deployment completed successfully!"
                         echo "Checking deployments in namespace ${namespace}:"
                         kubectl get pods -n ${namespace}
                         kubectl get services -n ${namespace}
+                        echo ""
+                        echo "Services will be available at:"
+                        echo "Movie Service: http://your-k8s-node:${nodePortMovie}/api/v1/movies/docs"
+                        echo "Cast Service: http://your-k8s-node:${nodePortCast}/api/v1/casts/docs"
                     """
                 }
             }
