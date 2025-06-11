@@ -5,7 +5,7 @@ pipeline {
         DOCKERHUB_USERNAME = "amiraabidi"
         DOCKER_CREDENTIALS_ID = "dockerhub-credentials"
         IMAGE_TAG = "${env.GIT_BRANCH?.tokenize('/')[-1] ?: 'latest'}"
-        MOVIE_IMAGE = "${DOCKERHUB_USERNAME}/movie_service:${IMAGE_TAG}"
+        MOVIE_IMAGE = "${DOCKERHUB_USERNAME}/movie-service:${IMAGE_TAG}"
     }
     
     stages {
@@ -32,9 +32,9 @@ pipeline {
                 script {
                     sh """
                         echo "Building Movie Service image: ${MOVIE_IMAGE}"
-                        docker build -t ${MOVIE_IMAGE} ./movie_service/
+                        docker build -t ${MOVIE_IMAGE} ./movie-service/
                         echo "Movie Service build completed successfully"
-                        docker images | grep movie_service
+                        docker images | grep movie-service
                     """
                 }
             }
