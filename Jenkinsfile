@@ -119,12 +119,17 @@ spec:
         image: ${MOVIE_IMAGE}
         ports:
         - containerPort: 8000
+        env:
+        - name: DATABASE_URI
+          value: "sqlite:///./movies.db"
+        - name: DATABASE_URL
+          value: "sqlite:///./movies.db"
         readinessProbe:
           httpGet:
             path: /api/v1/checkapi
             port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 5
+          initialDelaySeconds: 15
+          periodSeconds: 10
 EOF
 
                         # Create Movie Service Service
@@ -166,12 +171,17 @@ spec:
         image: ${CAST_IMAGE}
         ports:
         - containerPort: 8000
+        env:
+        - name: DATABASE_URI
+          value: "sqlite:///./casts.db"
+        - name: DATABASE_URL
+          value: "sqlite:///./casts.db"
         readinessProbe:
           httpGet:
             path: /api/v1/checkapi
             port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 5
+          initialDelaySeconds: 15
+          periodSeconds: 10
 EOF
 
                         # Create Cast Service Service
