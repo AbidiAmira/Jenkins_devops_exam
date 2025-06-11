@@ -216,14 +216,6 @@ spec:
           value: "postgresql://movie_user:movie_password@movie-db-${namespace}:5432/movie_db"
         - name: DATABASE_URL
           value: "postgresql://movie_user:movie_password@movie-db-${namespace}:5432/movie_db"
-        readinessProbe:
-          httpGet:
-            path: /api/v1/checkapi
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 5
 EOF
 
                         # Create Movie Service Service
@@ -270,14 +262,6 @@ spec:
           value: "postgresql://cast_user:cast_password@cast-db-${namespace}:5432/cast_db"
         - name: DATABASE_URL
           value: "postgresql://cast_user:cast_password@cast-db-${namespace}:5432/cast_db"
-        readinessProbe:
-          httpGet:
-            path: /api/v1/checkapi
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 5
 EOF
 
                         # Create Cast Service Service
