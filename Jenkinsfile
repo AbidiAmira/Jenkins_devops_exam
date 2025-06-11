@@ -6,27 +6,22 @@ pipeline {
         DOCKER_CREDENTIALS_ID = "dockerhub-credentials"
         IMAGE_TAG = "${env.GIT_BRANCH?.tokenize('/')[-1] ?: 'latest'}"
         MOVIE_IMAGE = "${DOCKERHUB_USERNAME}/movie-service:${IMAGE_TAG}"
-    }
-    
-    stages {
-        stage('Debug - Check Structure') {
+        CAST_IMAGE = "${DOCKERHUB_USERNAME}/cast-service:${IMAGE_TAG}"
+        stage('Build Cast Service') {
             steps {
                 script {
                     sh """
-                        echo "=== DEBUG INFORMATION ==="
-                        echo "Current branch: ${env.BRANCH_NAME}"
-                        echo "Current directory: \$(pwd)"
-                        echo "Files and folders:"
-                        ls -la
-                        echo "=== Looking for Dockerfiles ==="
-                        find . -name "Dockerfile" -type f
-                        echo "=== Complete directory structure ==="
-                        find . -type d
+                        echo "Building Cast Service image: ${CAST_IMAGE}"
+                        docker build -t ${CAST_IMAGE} ./cast-service/
+                        echo "Cast Service build completed successfully"
+                        docker images | grep cast-service
                     """
                 }
             }
         }
-        
+    }
+    
+    stages {        
         stage('Build Movie Service') {
             steps {
                 script {
