@@ -60,29 +60,73 @@ pipeline {
             }
         }
         
-        stage('Explore Helm Charts') {
+        stage('Deploy to Kubernetes') {
+            when {
+                anyOf {
+                    branch 'dev'
+                    branch 'qa'
+                    branch 'staging'
+                    allOf {
+                        branch 'main'
+                        // Manual approval pour prod
+                    }
+                }
+            }
             steps {
                 script {
+                    // Déterminer le namespace basé sur la branche
+                    def namespace = "${IMAGE_TAG}"
+                    def nodePortMovie = ""
+                    def nodePortCast = ""
+                    
+                    // Définir les ports par environnement
+                    switch(namespace) {
+                        case 'dev':
+                            nodePortMovie = "30001"
+                            nodePortCast = "30002"
+                            break
+                        case 'qa':
+                            nodePortMovie = "30003"
+                            nodePortCast = "30004"
+                            break
+                        case 'staging':
+                            nodePortMovie = "30005"
+                            nodePortCast = "30006"
+                            break
+                        case 'main':
+                            namespace = 'prod'
+                            nodePortMovie = "30007"
+                            nodePortCast = "30008"
+                            break
+                    }
+                    
                     sh """
-                        echo "=== HELM CHARTS EXPLORATION ==="
-                        echo "Charts directory structure:"
-                        find ./charts -type f
-                        echo ""
-                        echo "=== Chart.yaml content ==="
-                        if [ -f ./charts/Chart.yaml ]; then
-                            cat ./charts/Chart.yaml
-                        fi
-                        echo ""
-                        echo "=== Values.yaml content ==="
-                        if [ -f ./charts/values.yaml ]; then
-                            cat ./charts/values.yaml
-                        fi
-                        echo ""
-                        echo "=== Templates directory ==="
-                        ls -la ./charts/templates/
-                        echo ""
-                        echo "=== Deployment template example ==="
-                        find ./charts/templates -name "*deployment*" -type f | head -1 | xargs cat
+                        echo "Deploying to namespace: ${namespace}"
+                        echo "Movie Service NodePort: ${nodePortMovie}"
+                        echo "Cast Service NodePort: ${nodePortCast}"
+                        
+                        # Deploy Movie Service
+                        helm upgrade --install movie-service-${namespace} ./charts \\
+                            --namespace ${namespace} \\
+                            --create-namespace \\
+                            --set image.repository=amiraabidi/movie-service \\
+                            --set image.tag=${IMAGE_TAG} \\
+                            --set service.nodePort=${nodePortMovie} \\
+                            --set fullnameOverride=movie-service-${namespace}
+                        
+                        # Deploy Cast Service  
+                        helm upgrade --install cast-service-${namespace} ./charts \\
+                            --namespace ${namespace} \\
+                            --create-namespace \\
+                            --set image.repository=amiraabidi/cast-service \\
+                            --set image.tag=${IMAGE_TAG} \\
+                            --set service.nodePort=${nodePortCast} \\
+                            --set fullnameOverride=cast-service-${namespace}
+                        
+                        echo "Deployment completed successfully!"
+                        echo "Checking deployments in namespace ${namespace}:"
+                        kubectl get pods -n ${namespace}
+                        kubectl get services -n ${namespace}
                     """
                 }
             }
